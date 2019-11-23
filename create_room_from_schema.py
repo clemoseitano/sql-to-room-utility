@@ -4,7 +4,7 @@ import errno
 import datetime
 # A program for converting an sql(ite) file into a model class for use with RoomDB for android
 
-def read_sql_file(sql_file='sample_app_db.sql'):
+def read_sql_file(sql_file='jch_db.sql'):
     tables_dict = dict()
     with open(sql_file, 'r') as file:
         #read the file as a single line
@@ -27,6 +27,9 @@ def read_sql_file(sql_file='sample_app_db.sql'):
                 #print(columns_data.group(0)[1:-1].strip())
                 # split the text within the parentheses
                 dirty_columns_data = columns_data.group(0)[1:-1].strip().split(",")
+                                # add a primary key field if not was defined for any column
+                if "primary key" not in ", ".join(dirty_columns_data).lower():
+                    dirty_columns_data.append("\t`auto_incremented_id_field`\tINTEGER PRIMARY KEY AUTOINCREMENT")
                 # remove unneccesary white space from the egdes of each word
                 clean_columns_data = [x.strip().replace("\t", " ") for x in dirty_columns_data]
                 #print(clean_columns_data)
@@ -228,7 +231,7 @@ package {package_name}.data.entity;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
-import androidx.room.Index;
+import androidx.annotation.NonNull;
 import androidx.room.PrimaryKey;
 
 import static {package_name}.data.entity.{class_name}.TABLE_NAME;
@@ -351,9 +354,8 @@ def create_repository(package_name, database_class_name, entity_name):
     repository_class_content = f'''
 package {package_name}.data.repository;
 
-import android.app.Application;
+import android.content.Context;
 import android.os.AsyncTask;
-import android.text.TextUtils;
 
 import {package_name}.data.DataAccessListener;
 import {package_name}.data.{database_class_name};
@@ -443,9 +445,6 @@ public class {entity_name}Repository extends BaseRepository {{
         @Override
         protected void onPostExecute(Integer integer) {{
             super.onPostExecute(integer);
-            if (mDataAccessListener != null) {{
-                    mDataAccessListener.onSaved();
-            }}
         }}
     }}
 
@@ -508,7 +507,7 @@ package {package_name}.repository;
 
 import androidx.annotation.Nullable;
 
-import {package_name}.DataAccessListener;
+import {package_name}.data.DataAccessListener;
 
 /**
  * Created on {date}
@@ -562,11 +561,7 @@ def create_data_listener(package_name):
     date = datetime.datetime.now()
 
     base_repository_content = f'''
-package {package_name}.repository;
-
-import androidx.annotation.Nullable;
-
-import {package_name}.DataAccessListener;
+package {package_name}.data;
 
 /**
  * Created on {date}
@@ -615,7 +610,7 @@ public interface DataAccessListener {{
         entity_file.write(base_repository_content)
 
 
-if __name__ == '__main__':#TODO: accepting arguments
+if __name__ == '__main__':
     version = 1
     database_name = "sample_db"
     package_name = "com.clemoseitano.sample"
