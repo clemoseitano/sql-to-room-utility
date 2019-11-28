@@ -5,3 +5,4 @@ A successful run of this utility will create the entity classes, simple data acc
 
 ## To-Do
 * Add command line arguments in place of hardcoded parameters
+* Add unique constraints and indexing
