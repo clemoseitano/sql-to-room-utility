@@ -2,9 +2,31 @@ import re
 import os
 import errno
 import datetime
+import argparse
 # A program for converting an sql(ite) file into a model class for use with RoomDB for android
 
-def read_sql_file(sql_file='jch_db.sql'):
+def get_input_args():
+    """
+    Retrieves and parses the 4 command line arguments provided by the user when
+    they run the program from a terminal window.
+    This function returns these arguments as an ArgumentParser object.
+    Parameters:
+     None - simply using argparse module to create & store command line arguments
+    Returns:
+     parse_args() -data structure that stores the command line arguments object  
+    """
+    # Create Parse using ArgumentParser
+    parser = argparse.ArgumentParser()
+    # Create 4 command line arguments
+    parser.add_argument("-d", "--dir", type=str, help="The directory of the sql schema")
+    parser.add_argument("-p", "--package", type=str, default="com.example.app", help="The package name of for the Java files")
+    parser.add_argument("-f", "--dbfile", type=str, default="database.db", help="The database file name")
+    parser.add_argument("-c", "--dbclass", type=str, default="AppDatabase", help="The database class name, without the java extension")
+    
+    return parser.parse_args()
+
+
+def read_sql_file(sql_file):
     tables_dict = dict()
     with open(sql_file, 'r') as file:
         #read the file as a single line
@@ -611,14 +633,24 @@ public interface DataAccessListener {{
 
 
 if __name__ == '__main__':
+    in_arg = get_input_args()
+    if in_arg is None:
+        print("\n\nNo arguments provided\n\n")
+        exit()
+    elif in_arg.dir is None:
+        print("\n\nNo sqlite database or schema provided\n\n")
+        exit()
+
+    # get arguments
     version = 1
-    database_name = "sample_db"
-    package_name = "com.clemoseitano.sample"
-    database_class_name = "SampleDatabase"
+    database_name = in_arg.dbfile
+    package_name = in_arg.package
+    database_class_name = in_arg.dbclass
+    my_sql_schema = read_sql_file(in_arg.dir)
+    
     entities_list = list()
     dao_declarations = list()
-
-    my_sql_schema = read_sql_file()
+    
     #print(my_sql_schema)
     for key, value in my_sql_schema.items():
         # print(key.replace("_", " ").title().replace(" ", ""))
