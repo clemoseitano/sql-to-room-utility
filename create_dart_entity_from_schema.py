@@ -57,7 +57,7 @@ def read_sql_file(sql_file):
                 clean_columns_data = [x.strip().replace("\t", " ") for x in dirty_columns_data]
                 #print(clean_columns_data)
                 # get column names and other data
-                column_names = list(set([clean(x.split(" ")[0].strip()) for x in clean_columns_data]))
+                column_names = [clean(x.split(" ")[0].strip()) for x in clean_columns_data]
                 #print(column_names)
                 # get the data types for each column
                 column_data_types = [clean(x.split(" ")[1].strip()) for x in clean_columns_data]
@@ -84,7 +84,12 @@ def clean(txt):
 
 def get_field_declarations(values):
     field_declarations = ""
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         field_declarations += "\n"
         # create a field declaration for our class
         # make a camel case variable name
@@ -100,16 +105,16 @@ def get_field_declarations(values):
 
         # add the generic field data
         if "primary key" in field_qualifier:
-            if data_type.lower() == "integer":
+            if "integer" in data_type.lower():
                 field_declarations += "\n{} {};".format("private int", camel_cased_name)
-            elif data_type.lower() == "real":
+            elif "real" in data_type.lower():
                 field_declarations += "\n{} {};".format("private double", camel_cased_name)
             else:
                 field_declarations += "\n{} {};".format("private String", camel_cased_name)
         else:
-            if data_type.lower() == "integer":
+            if "integer" in data_type.lower():
                 field_declarations += "\n@ColumnInfo(name = \"{}\")\n{} {};".format(field_name, "private int", camel_cased_name)
-            elif data_type.lower() == "real":
+            elif "real" in data_type.lower():
                 field_declarations += "\n@ColumnInfo(name = \"{}\")\n{} {};".format(field_name, "private double", camel_cased_name)
             else:
                 field_declarations += "\n@ColumnInfo(name = \"{}\")\n{} {};".format(field_name, "private String", camel_cased_name)
@@ -123,7 +128,12 @@ def get_constructor(class_name, values):
     # create the constructor name and opening parentheses
     constructor_string = "public "+class_name+"("
     # append the constructor parameters
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         # make a camel case variable name
         camel_cased_name = field_name.replace("_", " ").title().replace(" ", "")
         camel_cased_name = camel_cased_name[0].lower() + camel_cased_name[1:]
@@ -133,9 +143,9 @@ def get_constructor(class_name, values):
                 constructor_string += "@NonNull "
             
             # append the field name to the constructor
-            if data_type.lower() == "integer":
+            if "integer" in data_type.lower():
                constructor_string += "int "+camel_cased_name +", "
-            elif data_type.lower() == "real":
+            elif "real" in data_type.lower():
                 constructor_string += "double "+camel_cased_name +", "
             else:
                 constructor_string += "String "+camel_cased_name +", "
@@ -143,7 +153,12 @@ def get_constructor(class_name, values):
     # remove trailing comma and space and append closing parentheses
     constructor_string = constructor_string.strip(", ") + ") {"
     # append the field initialiastions
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         # make a camel case variable name
         camel_cased_name = field_name.replace("_", " ").title().replace(" ", "")
         camel_cased_name = camel_cased_name[0].lower() + camel_cased_name[1:]
@@ -161,7 +176,12 @@ def get_constructor(class_name, values):
 def get_n_set(values):
     # append the getters and setters
     getters_n_setters = ""
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         getters_n_setters += "\n"
         # make a camel case variable name
         camel_cased_name = clean(field_name.replace("_", " ").title().replace(" ", ""))
@@ -170,9 +190,9 @@ def get_n_set(values):
         
         # get the data type
         d_type = "String"
-        if data_type.lower() == "integer":
+        if "integer" in data_type.lower():
             d_type = "int"
-        elif data_type.lower() == "real":
+        elif "real" in data_type.lower():
             d_type = "double"
         
         if "not null" in field_qualifier:
