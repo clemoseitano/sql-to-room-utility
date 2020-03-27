@@ -28,6 +28,7 @@ def get_input_args():
 
 def read_sql_file(sql_file):
     tables_dict = dict()
+    print(sql_file)
     with open(sql_file, 'r') as file:
         #read the file as a single line
         data = file.read().replace('\n', '')
@@ -41,7 +42,7 @@ def read_sql_file(sql_file):
                 # get the table name from the segment, 
                 # the table name is the last word before the opening parentheses
                 #print(segment)
-                entity = segment.split("(")[0].strip().split(" ")[-1].strip("`").strip("'")
+                entity = clean(segment.split("(")[0].strip().split(" ")[-1])
                 # print the entity name
                 #print(entity)
                 # get the text within the parentheses
@@ -56,10 +57,10 @@ def read_sql_file(sql_file):
                 clean_columns_data = [x.strip().replace("\t", " ") for x in dirty_columns_data]
                 #print(clean_columns_data)
                 # get column names and other data
-                column_names = [x.split(" ")[0].strip().strip("`").strip("'") for x in clean_columns_data]
+                column_names = [clean(x.split(" ")[0].strip()) for x in clean_columns_data]
                 #print(column_names)
                 # get the data types for each column
-                column_data_types = [x.split(" ")[1].strip().strip("`").strip("'") for x in clean_columns_data]
+                column_data_types = [clean(x.split(" ")[1].strip()) for x in clean_columns_data]
                 #print(column_data_types)
                 # get other column data for each column
                 other_column_data = list()
@@ -74,14 +75,21 @@ def read_sql_file(sql_file):
                 # set the columns data for the entity in the dictionary
                 tables_dict[entity] = list(zip(column_names, column_data_types, other_column_data))
                 #print(list(tables_dict[entity]))
-    # print(tables_dict)
-    # retunr our tables data as a dictionary
+    #print(tables_dict)
+    # return our tables data as a dictionary
     return tables_dict;
 
+def clean(txt):
+    return txt.strip("`").strip("'").strip('"')
 
 def get_field_declarations(values):
     field_declarations = ""
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         field_declarations += "\n"
         # create a field declaration for our class
         # make a camel case variable name
@@ -97,16 +105,16 @@ def get_field_declarations(values):
 
         # add the generic field data
         if "primary key" in field_qualifier:
-            if data_type.lower() == "integer":
+            if "integer" in data_type.lower():
                 field_declarations += "\n{} {};".format("private int", camel_cased_name)
-            elif data_type.lower() == "real":
+            elif "real" in data_type.lower():
                 field_declarations += "\n{} {};".format("private double", camel_cased_name)
             else:
                 field_declarations += "\n{} {};".format("private String", camel_cased_name)
         else:
-            if data_type.lower() == "integer":
+            if "integer" in data_type.lower():
                 field_declarations += "\n@ColumnInfo(name = \"{}\")\n{} {};".format(field_name, "private int", camel_cased_name)
-            elif data_type.lower() == "real":
+            elif "real" in data_type.lower():
                 field_declarations += "\n@ColumnInfo(name = \"{}\")\n{} {};".format(field_name, "private double", camel_cased_name)
             else:
                 field_declarations += "\n@ColumnInfo(name = \"{}\")\n{} {};".format(field_name, "private String", camel_cased_name)
@@ -116,10 +124,16 @@ def get_field_declarations(values):
 
 
 def get_constructor(class_name, values):
+    class_name = clean(class_name)
     # create the constructor name and opening parentheses
     constructor_string = "public "+class_name+"("
     # append the constructor parameters
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         # make a camel case variable name
         camel_cased_name = field_name.replace("_", " ").title().replace(" ", "")
         camel_cased_name = camel_cased_name[0].lower() + camel_cased_name[1:]
@@ -129,9 +143,9 @@ def get_constructor(class_name, values):
                 constructor_string += "@NonNull "
             
             # append the field name to the constructor
-            if data_type.lower() == "integer":
+            if "integer" in data_type.lower():
                constructor_string += "int "+camel_cased_name +", "
-            elif data_type.lower() == "real":
+            elif "real" in data_type.lower():
                 constructor_string += "double "+camel_cased_name +", "
             else:
                 constructor_string += "String "+camel_cased_name +", "
@@ -139,7 +153,12 @@ def get_constructor(class_name, values):
     # remove trailing comma and space and append closing parentheses
     constructor_string = constructor_string.strip(", ") + ") {"
     # append the field initialiastions
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         # make a camel case variable name
         camel_cased_name = field_name.replace("_", " ").title().replace(" ", "")
         camel_cased_name = camel_cased_name[0].lower() + camel_cased_name[1:]
@@ -157,18 +176,23 @@ def get_constructor(class_name, values):
 def get_n_set(values):
     # append the getters and setters
     getters_n_setters = ""
+    completed_fields = list()
     for field_name, data_type, field_qualifier in values:
+        if field_name in completed_fields or field_name.lower() in ["foreign", "primary"]:# eliminate the foreign keys and primary key additional data
+            continue
+        else:
+            completed_fields.append(field_name)
         getters_n_setters += "\n"
         # make a camel case variable name
-        camel_cased_name = field_name.replace("_", " ").title().replace(" ", "")
+        camel_cased_name = clean(field_name.replace("_", " ").title().replace(" ", ""))
         getter_setter_name = camel_cased_name
         camel_cased_name = camel_cased_name[0].lower() + camel_cased_name[1:]
         
         # get the data type
         d_type = "String"
-        if data_type.lower() == "integer":
+        if "integer" in data_type.lower():
             d_type = "int"
-        elif data_type.lower() == "real":
+        elif "real" in data_type.lower():
             d_type = "double"
         
         if "not null" in field_qualifier:
@@ -184,6 +208,7 @@ def get_n_set(values):
 
 # write the dao class, this is rather straight forward
 def create_dao(package_name, class_name, table_name):
+    class_name = clean(class_name)
     #print(package_name)
     date = datetime.datetime.now()
     
@@ -245,6 +270,7 @@ public interface {class_name}Dao {{
 
 # write the entity class
 def create_entity(package_name, class_name, table_name, class_field_declarations, class_constructor, class_getters_n_setters):
+    class_name = clean(class_name)
     date = datetime.datetime.now()
     
     entity_class_content = f'''
@@ -368,6 +394,7 @@ public abstract class {database_class_name} extends RoomDatabase {{
 
 # create the data repository classes for handling data access in the background
 def create_repository(package_name, database_class_name, entity_name):
+    entity_name = clean(entity_name)
     date = datetime.datetime.now()
 
     # create a prepender for Dao instances
