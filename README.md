@@ -5,8 +5,10 @@ A successful run of this utility will create the entity classes, simple data acc
 
 ## Usage
 ###NB: Tested on Python3 only
+
 Example:
 * python create_room_from_schema.py -d sample_app_db.sql -p com.example.cache -c AppDatabase -f app_cache.db
+
 Run the program on the command line with the following arguments:
 *  -d DIR, --dir DIR     The directory of the sql schema
 *  -p PACKAGE, --package PACKAGE
