@@ -32,6 +32,7 @@ def read_sql_file(sql_file):
     with open(sql_file, 'r') as file:
         #read the file as a single line
         data = file.read().replace('\n', '')
+        data = data.replace('"', '`')
         # split the line into segments
         sql_data_segments = list(data.split(";"))
         for segment in sql_data_segments:
